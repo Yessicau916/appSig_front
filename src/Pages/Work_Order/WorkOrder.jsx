@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Edit, Trash, Eye, Search, Users, Upload, FolderDown, ClipboardList, FileUp, Percent,SquareDashedMousePointer   } from "lucide-react";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import { FiPlusCircle } from "react-icons/fi";
@@ -43,9 +43,12 @@ const ActionButton = ({ icon: Icon, label, tooltip, className = "", onClick }) =
 );
 
 const WorkOrder = () => {
-  const API_URL = `${import.meta.env.VITE_API_URL || ""}/api/work-orders`;
-  const [orders, setOrders] = useState([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [orders, setOrders] = useState([
+    { id: 1, priority: "ALTA", otNumber: "OT-2026-001", activity: "Mantenimiento de red", address: "Calle 10 # 20-30", status: "ACTIVO", responsible: "Juan Pérez", sstManager: "Laura Gómez", observations: "Revisión programada de equipos." },
+    { id: 2, priority: "MEDIA", otNumber: "OT-2026-002", activity: "Inspección de luminarias", address: "Carrera 5 # 12-40", status: "EJECUTADO", responsible: "María Gómez", sstManager: "Carlos Ruiz", observations: "Trabajo finalizado sin novedades." },
+    { id: 3, priority: "BAJA", otNumber: "OT-2026-003", activity: "Adecuación de acometida", address: "Avenida 3 # 8-15", status: "PENDIENTE", responsible: "Andrés López", sstManager: "Laura Gómez", observations: "Pendiente de asignación de materiales." },
+  ]);
+  const [loadingOrders] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [apiError, setApiError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,34 +64,6 @@ const WorkOrder = () => {
   const [selectedFileIndexes, setSelectedFileIndexes] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
-  const request = async (url, options = {}) => {
-    const response = await fetch(url, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...options.headers },
-    });
-    if (!response.ok) {
-      const message = await response.text();
-      throw new Error(message || `Error de API (${response.status})`);
-    }
-    if (response.status === 204) return null;
-    return response.json();
-  };
-
-  const loadOrders = async () => {
-    setLoadingOrders(true);
-    setApiError("");
-    try {
-      const result = await request(API_URL);
-      setOrders(Array.isArray(result) ? result : result?.data || result?.items || []);
-    } catch (error) {
-      setApiError(`No se pudieron cargar las órdenes: ${error.message}`);
-    } finally {
-      setLoadingOrders(false);
-    }
-  };
-
-  useEffect(() => { loadOrders(); }, []);
-
   const toggleOrderSelection = (orderId) => {
     setSelectedOrderIds((selected) => selected.includes(orderId)
       ? selected.filter((id) => id !== orderId)
@@ -97,20 +72,11 @@ const WorkOrder = () => {
 
   const deleteOrder = async (order) => {
     if (!window.confirm(`¿Eliminar la orden ${order.otNumber || order.document || "seleccionada"}?`)) return;
-    try {
-      await request(`${API_URL}/${encodeURIComponent(order.id ?? order._id)}`, { method: "DELETE" });
-      setOrders((current) => current.filter((item) => (item.id ?? item._id) !== (order.id ?? order._id)));
-      setSelectedOrderIds((current) => current.filter((id) => id !== (order.id ?? order._id)));
-      setApiError("");
-    } catch (error) { setApiError(`No se pudo eliminar la orden: ${error.message}`); }
+    setOrders((current) => current.filter((item) => (item.id ?? item._id) !== (order.id ?? order._id)));
+    setSelectedOrderIds((current) => current.filter((id) => id !== (order.id ?? order._id)));
   };
 
-  const deleteSelectedOrders = async () => {
-    const selected = orders.filter((order) => selectedOrderIds.includes(order.id ?? order._id));
-    for (const order of selected) {
-      try { await request(`${API_URL}/${encodeURIComponent(order.id ?? order._id)}`, { method: "DELETE" }); }
-      catch (error) { setApiError(`No se pudieron eliminar todas las órdenes: ${error.message}`); await loadOrders(); return; }
-    }
+  const deleteSelectedOrders = () => {
     setOrders((current) => current.filter((order) => !selectedOrderIds.includes(order.id ?? order._id)));
     setSelectedOrderIds([]);
   };
@@ -388,7 +354,24 @@ const WorkOrder = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 uppercase">{order.otNumber || order.document}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.activity}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.address}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.status}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {(() => {
+                        const status = String(order.status || "").toUpperCase();
+                        const colors = status === "ACTIVO"
+                          ? { badge: "from-emerald-50 to-teal-100 text-emerald-700 ring-emerald-200", dot: "bg-emerald-500" }
+                          : status === "PENDIENTE"
+                            ? { badge: "from-red-50 to-rose-100 text-red-700 ring-red-200", dot: "bg-red-500" }
+                            : status === "EJECUTADO"
+                              ? { badge: "from-blue-50 to-sky-100 text-blue-700 ring-blue-200", dot: "bg-blue-500" }
+                              : { badge: "from-gray-50 to-gray-100 text-gray-700 ring-gray-200", dot: "bg-gray-500" };
+                        return (
+                          <span className={`inline-flex items-center gap-2 rounded-full bg-gradient-to-r ${colors.badge} px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide shadow-sm ring-1 ring-inset`}>
+                            <span className={`h-2 w-2 rounded-full ${colors.dot} shadow-sm`} />
+                            {order.status || "Sin estado"}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.responsible}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center gap-2">
                       <ActionButton icon={Eye} label="Ver Orden de Trabajo" tooltip="Ver Orden de Trabajo" onClick={() => openViewUser(order)} />
@@ -421,19 +404,13 @@ const WorkOrder = () => {
             <form key={userToEdit ? userToEdit.id ?? userToEdit._id ?? userToEdit.otNumber : "create"} className="space-y-5 p-6" onSubmit={async (event) => {
               event.preventDefault();
               const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-              setSavingOrder(true);
-              setApiError("");
-              try {
-                const editing = Boolean(userToEdit);
-                const saved = await request(editing ? `${API_URL}/${encodeURIComponent(userToEdit.id ?? userToEdit._id)}` : API_URL, {
-                  method: editing ? "PUT" : "POST",
-                  body: JSON.stringify(values),
-                });
-                if (editing) setOrders((current) => current.map((order) => (order.id ?? order._id) === (userToEdit.id ?? userToEdit._id) ? { ...order, ...values, ...(saved?.data || saved || {}) } : order));
-                else setOrders((current) => [...current, saved?.data || saved || values]);
-                closeUserModal();
-              } catch (error) { setApiError(`No se pudo guardar la orden: ${error.message}`); }
-              finally { setSavingOrder(false); }
+              const editing = Boolean(userToEdit);
+              if (editing) {
+                setOrders((current) => current.map((order) => (order.id ?? order._id) === (userToEdit.id ?? userToEdit._id) ? { ...order, ...values } : order));
+              } else {
+                setOrders((current) => [...current, { id: Date.now(), ...values }]);
+              }
+              closeUserModal();
             }}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {isViewingUser ? (

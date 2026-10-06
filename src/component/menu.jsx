@@ -7,16 +7,16 @@ import Dashboard from '../Pages/Dashboard/Dashboard.jsx'
 import Employee from '../Pages/Employee/Employee.jsx'
 import FormList from '../Pages/Form/FormList.jsx'
 import FormType from '../Pages/Form/FormType.jsx'
+import AD from '../Pages/Employee/AD.jsx'
+import Region from '../Pages/Region/Region.jsx'
 import Permission from '../Pages/Role/Permission.jsx'
 import Privilege from '../Pages/Role/Privilege.jsx'
-import UserList from '../Pages/User/UserList.jsx'
 import MyWorkOrder from '../Pages/Work_Order/MyWorkOrder.jsx'
 import WorkOrder from '../Pages/Work_Order/WorkOrder.jsx'
 
 import {
     LayoutDashboard,
     Folder,
-    Users,
     ShieldCheck,
     ClipboardList,
     FileText,
@@ -29,20 +29,10 @@ import {
 
 
 const dashboard = { id: 'dashboard', label: 'Dashboard' }
-
-const categoria = { id: 'categories', label: 'Categorías' }
+const employee = { id: 'employees', label: 'Empleados' }
+const categoria = { id: 'category-list', label: 'Categorías' }
 
 const modules = [
-	
-	{
-		id: 'users',
-		icon: Users,
-		label: 'Usuarios',
-		items: [
-			{ id: 'users-list', label: 'Usuarios' },
-			{ id: 'employees', label: 'Empleados' },
-		],
-	},
 	{
 		id: 'roles',
 		icon: ShieldCheck,
@@ -61,12 +51,12 @@ const modules = [
 			{ id: 'my-work-orders', label: 'Mi orden de trabajo' },
 		],
 	},
-    {
-		id: 'categories',
-		icon: Folder,
-		label: 'Categorías',
-		items: [{ id: 'category-list', label: 'Categorías' }],
-	},
+    // {
+	// 	id: 'categories',
+	// 	icon: Folder,
+	// 	label: 'Categorías',
+	// 	items: [{ id: 'category-list', label: 'Categorías' }],
+	// },
 	{
 		id: 'forms',
 		icon: FileText,
@@ -83,6 +73,7 @@ const modules = [
 		items: [
 			{ id: 'contracts-list', label: 'Contrato' },
 			{ id: 'assignments', label: 'Asignación' },
+			{ id: 'regions', label: 'Regiones' },
 		],
 	},
 ]
@@ -90,16 +81,17 @@ const modules = [
 const pageComponents = {
 	dashboard: Dashboard,
 	'category-list': Category,
-	'users-list': UserList,
 	employees: Employee,
 	permissions: Permission,
 	privileges: Privilege,
 	'work-order-list': WorkOrder,
 	'my-work-orders': MyWorkOrder,
 	'forms-list': FormList,
+	ad: AD,
 	'form-types': FormType,
 	'contracts-list': Contract,
 	assignments: Assignment,
+	regions: Region,
 }
 
 function Menu() {
@@ -107,7 +99,7 @@ function Menu() {
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [expandedModules, setExpandedModules] = useState({})
 	const [moduleDashboard, setModuleDashboard] = useState(null)
-	const activeLabel = [dashboard, ...modules.flatMap((module) => module.items)]
+	const activeLabel = [dashboard, employee, categoria, ...modules.flatMap((module) => module.items)]
 		.find((section) => section.id === activeSection)?.label
 	const ActivePage = pageComponents[activeSection]
 
@@ -170,6 +162,28 @@ function Menu() {
 						<LayoutDashboard aria-hidden="true" className={`h-4 w-4 shrink-0 ${activeSection === dashboard.id ? 'text-[#c9521d]' : 'text-[#92999e]'}`} />
 						{dashboard.label}
 					</a>
+					<div className="border-t border-[#f0f1f2] pt-2">
+						<a
+							aria-current={activeSection === employee.id ? 'page' : undefined}
+							className={`mb-2 flex min-h-[42px] items-center gap-3 rounded-[5px] px-3 text-[13px] font-medium transition-colors hover:bg-[#f6f7f8] hover:text-[#292d32] ${activeSection === employee.id ? 'bg-[#fff1e9] font-semibold text-[#c9521d] hover:bg-[#fff1e9] hover:text-[#c9521d]' : 'text-[#5c6267]'}`}
+							href={`#${employee.id}`}
+							onClick={() => selectSection(employee.id)}
+						>
+							<UserRoundPlus aria-hidden="true" className={`h-4 w-4 shrink-0 ${activeSection === employee.id ? 'text-[#c9521d]' : 'text-[#92999e]'}`} />
+							{employee.label}
+						</a>
+					</div>
+					<div className="border-t border-[#f0f1f2] pt-2">
+						<a
+							aria-current={activeSection === categoria.id ? 'page' : undefined}
+							className={`mb-2 flex min-h-[42px] items-center gap-3 rounded-[5px] px-3 text-[13px] font-medium transition-colors hover:bg-[#f6f7f8] hover:text-[#292d32] ${activeSection === categoria.id ? 'bg-[#fff1e9] font-semibold text-[#c9521d] hover:bg-[#fff1e9] hover:text-[#c9521d]' : 'text-[#5c6267]'}`}
+							href={`#${categoria.id}`}
+							onClick={() => selectSection(categoria.id)}
+						>
+							<Folder aria-hidden="true" className={`h-4 w-4 shrink-0 ${activeSection === categoria.id ? 'text-[#c9521d]' : 'text-[#92999e]'}`} />
+							{categoria.label}
+						</a>
+					</div>
 					{modules.map((module) => (
 						<div className="border-t border-[#f0f1f2] py-1" key={module.id}>
 							<button
@@ -182,9 +196,6 @@ function Menu() {
 								<span className="flex items-center gap-3"><module.icon aria-hidden="true" className="h-4 w-4 text-[#92999e]" />{module.label}</span>
 								<span className="flex items-center gap-3">
 									<span aria-hidden="true" className={`h-2 w-2 rotate-45 border-b border-r border-[#969da2] transition-transform ${expandedModules[module.id] ? 'translate-y-[2px] rotate-[225deg]' : '-translate-y-[2px]'}`} />
-									<button aria-label={`Mini dashboard de ${module.label}`} className="rounded p-1 text-[#92999e] hover:bg-[#fff1e9] hover:text-[#c9521d]" onClick={(event) => { event.stopPropagation(); showModuleDashboard(module) }} type="button">
-										<LayoutDashboard aria-hidden="true" className="h-4 w-4" />
-									</button>
 								</span>
 							</button>
 							<div className={`ml-3 border-l border-[#e7e9eb] pl-3 ${expandedModules[module.id] ? 'block' : 'hidden'}`} id={`submenu-${module.id}`}>
